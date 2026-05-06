@@ -46,7 +46,7 @@
     "jcs"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js",

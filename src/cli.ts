@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { pathToFileURL } from "node:url";
 import { fetchCert } from "./fetch-cert.js";
 import { loadKeys } from "./keys.js";
 import { verifyCertificate } from "./verify.js";
@@ -177,6 +178,6 @@ async function readVersion(): Promise<string> {
   } catch { return "@certifieddata/verify (unknown version)"; }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main(process.argv.slice(2)).then((code) => process.exit(code));
 }
