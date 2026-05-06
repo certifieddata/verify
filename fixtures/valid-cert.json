@@ -1,0 +1,15 @@
+{
+  "certification_id": "ce_01HXYZTEST00000000000000",
+  "timestamp": "2026-03-18T20:31:45Z",
+  "issuer": "CertifiedData.io",
+  "dataset_hash": "sha256:b11de6b05ffb6ab370f57828cb22399fd0eff0163a9bca4ffd9eb394e8a03ac1",
+  "algorithm": "CTGAN",
+  "rows": 3,
+  "columns": 3,
+  "schema_version": "cert.v1",
+  "key_id": "ck_2026_test_01",
+  "metadata": {
+    "description": "demo synthetic dataset for verifier fixtures"
+  },
+  "signature": "Iy6EgIUxRFS8JJJAI5Qox/BicG3/hStZoQMUnU4VeKvD/d65kmAY4OlvmCYa1PbpFMeVUBwr1zH1cUZX8pGqDg=="
+}

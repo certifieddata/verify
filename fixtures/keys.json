@@ -1,0 +1,12 @@
+{
+  "issuer": "CertifiedData.io",
+  "keys": [
+    {
+      "key_id": "ck_2026_test_01",
+      "public_key": "6MPbLAJwOsgv4DCOR6264m3s5z0IxRBNqAy8suzZPoU=",
+      "algorithm": "ed25519",
+      "created_at": "2026-01-01T00:00:00Z",
+      "label": "test-fixture"
+    }
+  ]
+}
