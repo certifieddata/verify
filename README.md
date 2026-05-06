@@ -1,5 +1,10 @@
 # @certifieddata/verify
 
+[![npm](https://img.shields.io/npm/v/@certifieddata/verify.svg)](https://www.npmjs.com/package/@certifieddata/verify)
+[![CI](https://github.com/certifieddata/verify/actions/workflows/ci.yml/badge.svg)](https://github.com/certifieddata/verify/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/node/v/@certifieddata/verify.svg)](package.json)
+
 > Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.
 
 ## Install + verify in three lines
