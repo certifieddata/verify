@@ -1,0 +1,63 @@
+{
+  "name": "@certifieddata/verify",
+  "version": "0.1.0",
+  "description": "Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.",
+  "type": "module",
+  "bin": {
+    "certifieddata-verify": "dist/cli.js",
+    "cd-verify": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "!dist/**/*.test.*",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "author": "CertifiedData.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/certifieddata/verify.git"
+  },
+  "homepage": "https://github.com/certifieddata/verify#readme",
+  "bugs": {
+    "url": "https://github.com/certifieddata/verify/issues"
+  },
+  "keywords": [
+    "certifieddata",
+    "verification",
+    "ed25519",
+    "synthetic-data",
+    "cryptography",
+    "cli",
+    "audit",
+    "rfc8785",
+    "jcs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js",
+    "fixtures": "node fixtures/generate.mjs",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "eslint": "^9.15.0",
+    "typescript-eslint": "^8.15.0",
+    "@eslint/js": "^9.15.0"
+  }
+}
