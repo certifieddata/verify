@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { pathToFileURL } from "node:url";
 import { fetchCert } from "./fetch-cert.js";
 import { loadKeys } from "./keys.js";
 import { verifyCertificate } from "./verify.js";
@@ -292,24 +291,37 @@ async function readVersion() {
         return "@certifieddata/verify (unknown version)";
     }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    // Set exitCode and let the event loop drain, rather than process.exit(code).
-    //
-    // process.exit() tears the process down immediately. On Windows, if a libuv
-    // async handle is mid-close when that happens — which it is on any path that
-    // did fs or network I/O — Node aborts with:
-    //
-    //   Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
-    //
-    // The verdict has already been printed by then, so the output looks correct
-    // while the shell sees an abnormal exit (127) instead of the documented code.
-    // That silently breaks every CI consumer, which is the one audience that
-    // reads the exit code rather than the text.
-    //
-    // Assigning exitCode lets Node close its handles and exit normally with the
-    // code we asked for. Nothing here keeps the loop alive deliberately.
-    main(process.argv.slice(2)).then((code) => {
-        process.exitCode = code;
-    });
-}
+// ── Entry point ─────────────────────────────────────────────────────────────
+//
+// Run unconditionally. There is deliberately no "was I invoked directly?" guard,
+// because the guard that used to be here made this tool FAIL OPEN:
+//
+//   if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+//
+// Invoked through a bin, process.argv[1] is the symlink npm created
+// (node_modules/.bin/verify) while import.meta.url is the resolved real path
+// (node_modules/@certifieddata/verify/dist/cli.js). Those never match, so main()
+// was never called: the process started, printed nothing, and exited 0.
+//
+// A verifier that exits 0 without verifying is the worst failure this tool can
+// have. Not a crash, not a false negative — silent assent. `verify $ID && deploy`
+// passed for a receipt nobody checked, and a nonsense id returned success.
+//
+// It was invisible on Windows, which is why it shipped: npm writes .cmd shims
+// there that pass the real path as argv[1], so the comparison matched. On Linux
+// and macOS npm writes a true symlink and it never did.
+//
+// A realpathSync() comparison would also fix the symlink case, but it keeps a
+// conditional on the critical path — and every way that conditional can be wrong
+// fails silently and open. This file is only ever an entry point; nothing in the
+// repo imports it. So it just runs.
+//
+// exitCode rather than process.exit(): process.exit() tears the process down
+// immediately, and if a libuv handle is mid-close — true on any path that did fs
+// or network I/O — Node aborts with
+// "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)". The verdict is
+// printed before that, so output looks right while the shell sees 127 instead of
+// the documented code. Assigning exitCode lets Node close its handles and exit
+// normally.
+process.exitCode = await main(process.argv.slice(2));
 //# sourceMappingURL=cli.js.map
