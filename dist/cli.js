@@ -293,6 +293,23 @@ async function readVersion() {
     }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    main(process.argv.slice(2)).then((code) => process.exit(code));
+    // Set exitCode and let the event loop drain, rather than process.exit(code).
+    //
+    // process.exit() tears the process down immediately. On Windows, if a libuv
+    // async handle is mid-close when that happens — which it is on any path that
+    // did fs or network I/O — Node aborts with:
+    //
+    //   Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+    //
+    // The verdict has already been printed by then, so the output looks correct
+    // while the shell sees an abnormal exit (127) instead of the documented code.
+    // That silently breaks every CI consumer, which is the one audience that
+    // reads the exit code rather than the text.
+    //
+    // Assigning exitCode lets Node close its handles and exit normally with the
+    // code we asked for. Nothing here keeps the loop alive deliberately.
+    main(process.argv.slice(2)).then((code) => {
+        process.exitCode = code;
+    });
 }
 //# sourceMappingURL=cli.js.map
