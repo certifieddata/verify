@@ -144,13 +144,35 @@ In `fixtures/`:
 | `tampered-receipt.json` | `INVALID` | `receipt.amount` altered, signature untouched — proves the signature actually covers the payload |
 | `malformed-receipt.json` | `MALFORMED` | signature is not a 64-byte Ed25519 value |
 
+With the repo checked out:
+
 ```bash
-npx @certifieddata/verify fixtures/valid-receipt.json    --type receipt   # VALID
-npx @certifieddata/verify fixtures/tampered-receipt.json --type receipt   # INVALID
+npx github:certifieddata/verify fixtures/valid-receipt.json    --type receipt   # VALID
+npx github:certifieddata/verify fixtures/tampered-receipt.json --type receipt   # INVALID
+```
+
+Without checking anything out — pipe the fixture in on stdin:
+
+```bash
+curl -s https://raw.githubusercontent.com/certifieddata/verify/main/fixtures/tampered-receipt.json \
+  | npx github:certifieddata/verify - --type receipt
+# → ✗ INVALID  ed25519 signature does not verify against the RFC 8785 canonical payload
 ```
 
 The tampered vector is the important one: an implementation that reports `VALID`
 for it is not verifying anything.
+
+### Accepted inputs
+
+| Form | Receipts | Certificates |
+|---|---|---|
+| bare UUID | yes — fetched from the public verify endpoint | yes |
+| local file path | yes | yes |
+| `-` (stdin) | yes | yes |
+| `https://…` URL | **no** — treated as a file path | yes |
+
+URL input is certificate-only today. For a remote receipt, use the UUID form or
+pipe it in on stdin.
 
 ---
 
