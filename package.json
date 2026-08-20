@@ -47,6 +47,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js dist/receipt.test.js dist/receipt-vectors.test.js",
