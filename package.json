@@ -52,7 +52,7 @@
     "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
-    "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js dist/receipt.test.js dist/receipt-vectors.test.js dist/exit-codes.test.js",
+    "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js dist/receipt.test.js dist/receipt-vectors.test.js dist/exit-codes.test.js dist/bin-invocation.test.js",
     "fixtures": "node fixtures/generate.mjs",
     "prepublishOnly": "npm run build && npm test"
   },
