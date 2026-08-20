@@ -4,6 +4,7 @@
   "description": "Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.",
   "type": "module",
   "bin": {
+    "verify": "dist/cli.js",
     "certifieddata-verify": "dist/cli.js",
     "cd-verify": "dist/cli.js"
   },
@@ -47,9 +48,11 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "verify:dist": "npm run build && git diff --exit-code -- dist/",
+    "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
-    "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js dist/receipt.test.js",
+    "test": "tsc -p tsconfig.json && node --test dist/canonicalize.test.js dist/verify.test.js dist/cli.test.js dist/receipt.test.js dist/receipt-vectors.test.js",
     "fixtures": "node fixtures/generate.mjs",
     "prepublishOnly": "npm run build && npm test"
   },
@@ -59,5 +62,8 @@
     "eslint": "^9.15.0",
     "typescript-eslint": "^8.15.0",
     "@eslint/js": "^9.15.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

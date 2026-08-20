@@ -87,6 +87,25 @@ certifieddata-verify ./received-cert.json --keys ./certifieddata-keys.json --off
 
 `--offline` refuses to make any network call. Combined with `--keys`, it produces a fully reproducible audit you can replay months later.
 
+## Verifying payment receipts
+
+Receipts are a different artifact from certificates, with a different trust root
+(`/.well-known/certifieddata-public-key.pem` rather than the keys document).
+
+```bash
+npx @certifieddata/verify <receipt-uuid> --type receipt
+```
+
+The canonicalization, the exact bytes that are signed, and the test vectors are
+specified normatively in **[RECEIPT-VERIFICATION.md](./RECEIPT-VERIFICATION.md)**.
+It is RFC 8785 (JCS) — not `json-stable-stringify`; the two produce different
+bytes for the same document. `fixtures/valid-receipt.json` is a real production
+receipt and `src/receipt-vectors.test.ts` pins its digest, so an outside
+implementation can check itself against a known-good value.
+
+The server's `signatureValid` boolean is never used to decide the verdict. It is
+CertifiedData's opinion about CertifiedData's own signature.
+
 ## How CertifiedData certificates work
 
 CertifiedData.io issues `cert.v1` documents that bind together:
