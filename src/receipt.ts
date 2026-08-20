@@ -142,7 +142,7 @@ export function verifyReceiptEnvelope(
   env: ReceiptEnvelope,
   publicKeyPem: string,
 ): ReceiptVerifyResult {
-  const p = env.payload as Record<string, any>;
+  const p = env.payload as Record<string, unknown>;
   const result: ReceiptVerifyResult = {
     artifact_type: "receipt",
     artifact_id: typeof p.receipt_id === "string" ? p.receipt_id : null,
@@ -220,7 +220,8 @@ export function verifyReceiptEnvelope(
 
   // Key id is reported from the envelope's metadata when present; trust came
   // from the .well-known fetch, not from this label.
-  result.key_id = typeof (env as any).keyId === "string" ? (env as any).keyId : result.key_id;
+  const keyIdMeta = (env as { keyId?: unknown }).keyId;
+  result.key_id = typeof keyIdMeta === "string" ? keyIdMeta : result.key_id;
   result.verdict = "VALID";
   result.reason = "ed25519 signature verified locally against the published Agent Commerce key";
   return result;
