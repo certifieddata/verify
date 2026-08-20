@@ -4,6 +4,7 @@
   "description": "Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.",
   "type": "module",
   "bin": {
+    "verify": "dist/cli.js",
     "certifieddata-verify": "dist/cli.js",
     "cd-verify": "dist/cli.js"
   },
@@ -47,6 +48,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "verify:dist": "npm run build && git diff --exit-code -- dist/",
     "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
