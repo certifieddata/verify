@@ -119,8 +119,16 @@ Note the key id: **`ed25519-prod-2025-02`**. Some older documentation shows
 ### Reproduce it
 
 ```bash
-npx @certifieddata/verify 2492a060-8fbc-40ae-beab-7258aefb0608 --type receipt
+npx --package github:certifieddata/verify cd-verify 2492a060-8fbc-40ae-beab-7258aefb0608 --type receipt
 ```
+
+> **Windows note:** invoke the `cd-verify` bin explicitly, as above. The short
+> form `npx github:certifieddata/verify …` selects the bin named `verify`, and
+> `verify` is a **cmd.exe built-in command** — cmd intercepts the bare name
+> before PATH is consulted, so on Windows the built-in swallows the invocation
+> (exit 1, no output). POSIX shells have no such built-in, so the short form
+> works there. CI missed this because tests spawn the shim by *path*, and
+> built-ins only shadow *bare names*.
 
 Expected:
 
@@ -147,15 +155,15 @@ In `fixtures/`:
 With the repo checked out:
 
 ```bash
-npx github:certifieddata/verify fixtures/valid-receipt.json    --type receipt   # VALID
-npx github:certifieddata/verify fixtures/tampered-receipt.json --type receipt   # INVALID
+npx -p github:certifieddata/verify cd-verify fixtures/valid-receipt.json    --type receipt   # VALID
+npx -p github:certifieddata/verify cd-verify fixtures/tampered-receipt.json --type receipt   # INVALID
 ```
 
 Without checking anything out — pipe the fixture in on stdin:
 
 ```bash
 curl -s https://raw.githubusercontent.com/certifieddata/verify/main/fixtures/tampered-receipt.json \
-  | npx github:certifieddata/verify - --type receipt
+  | npx -p github:certifieddata/verify cd-verify - --type receipt
 # → ✗ INVALID  ed25519 signature does not verify against the RFC 8785 canonical payload
 ```
 

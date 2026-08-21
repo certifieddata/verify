@@ -183,6 +183,47 @@ test("invoking through a symlinked path still runs — no silent no-op", () => {
   }
 });
 
+// ── Bare-name invocation through the shell ──────────────────────────────────
+//
+// npx invokes the selected bin as a BARE NAME through the platform shell. On
+// Windows, cmd.exe built-ins shadow bare names before PATH is consulted — and
+// `verify` IS a cmd.exe built-in (it toggles disk write verification). So
+// `npx github:certifieddata/verify …` silently dies on Windows: cmd's built-in
+// swallows the name, prints "An incorrect parameter was entered for the
+// command." to a console nobody sees, and exits 1 with no output.
+//
+// Every other test here spawns the shim by PATH, which built-ins cannot
+// shadow — which is exactly why six green CI legs, including two on Windows,
+// shipped this. This test does what npx does: bare name, through the shell,
+// with .bin on PATH.
+//
+// `verify` itself is unfixable on Windows (you cannot beat a cmd built-in), so
+// the documented cross-platform command uses `cd-verify`, and THIS test pins
+// that guarantee. The `verify` alias stays for POSIX convenience only.
+
+test("documented bin `cd-verify` works as a bare name through the shell", () => {
+  assert.ok(binPath, "bin was not installed — setup failed");
+  const binDir = dirname(binPath!);
+  const r = spawnSync("cd-verify", ["--version"], {
+    encoding: "utf8",
+    shell: true, // bare name + shell = the npx invocation shape
+    env: {
+      ...process.env,
+      NO_COLOR: "1",
+      PATH: `${binDir}${isWindows ? ";" : ":"}${process.env.PATH ?? ""}`,
+      Path: `${binDir};${process.env.Path ?? process.env.PATH ?? ""}`,
+    },
+  });
+  const combined = (r.stdout ?? "") + (r.stderr ?? "");
+  assert.notEqual(
+    combined.trim(),
+    "",
+    "cd-verify produced no output as a bare shell name — the documented command is broken",
+  );
+  assert.match(r.stdout ?? "", /@certifieddata\/verify/);
+  assert.equal(r.status, 0, `combined: ${combined}`);
+});
+
 // ── Network: the case the reviewer reproduced ───────────────────────────────
 
 test("bin fails closed on a nonsense id — never exit 0", async () => {

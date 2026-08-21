@@ -93,7 +93,7 @@ Receipts are a different artifact from certificates, with a different trust root
 (`/.well-known/certifieddata-public-key.pem` rather than the keys document).
 
 ```bash
-npx @certifieddata/verify <receipt-uuid> --type receipt
+npx --package github:certifieddata/verify cd-verify <receipt-uuid> --type receipt
 ```
 
 The canonicalization, the exact bytes that are signed, and the test vectors are
