@@ -31,7 +31,7 @@ export async function resolveArtifactKind(
 
   // Endpoint-URL hints.
   if (/\/api\/payments\/verify\//.test(target)) return { kind: "receipt", via: "url-path" };
-  if (/\/api\/v1\/certificates\//.test(target)) return { kind: "certificate", via: "url-path" };
+  if (/\/api\/(v1\/)?certificates?\//.test(target)) return { kind: "certificate", via: "url-path" };
 
   // Local file / stdin: sniff the JSON shape.
   const looksLocal =
@@ -43,11 +43,26 @@ export async function resolveArtifactKind(
   if (looksLocal && target !== "-") {
     try {
       const parsed = JSON.parse(await readFile(target, "utf8")) as Record<string, unknown>;
+      // A cert.v2 envelope names its schema on the payload, not at the top
+      // level — production serves the outer document as
+      // "certifieddata.manifest.v1" — so sniffing only the top level would
+      // miss every real certificate.
       const schema =
         (parsed.schema_version as string | undefined) ??
-        ((parsed.receipt as Record<string, unknown> | undefined)?.schema_version as string | undefined);
+        ((parsed.payload as Record<string, unknown> | undefined)?.schema_version as
+          | string
+          | undefined) ??
+        ((parsed.receipt as Record<string, unknown> | undefined)?.schema_version as
+          | string
+          | undefined);
+      const payloadSchema = (parsed.payload as Record<string, unknown> | undefined)
+        ?.schema_version as string | undefined;
       if (schema === "payment_receipt.v1") return { kind: "receipt", via: "local-schema" };
-      if (typeof schema === "string" && schema.startsWith("cert.")) {
+      if (
+        isCertificateSchema(schema) ||
+        isCertificateSchema(payloadSchema) ||
+        schema === "certifieddata.manifest.v1"
+      ) {
         return { kind: "certificate", via: "local-schema" };
       }
       // Envelope shape without schema — a verify-endpoint dump.
@@ -89,4 +104,19 @@ export async function resolveArtifactKind(
   if (cert === "exists") return { kind: "certificate", via: "probe" };
   if (rcpt === "exists") return { kind: "receipt", via: "probe" };
   return { kind: "not_found", via: "probe" };
+}
+
+/**
+ * Certificate schema names seen in the wild:
+ *   cert.v1, cert.v2                 — the payload's own schema_version
+ *   certifieddata.cert.v1            — the public display projection
+ *   certifieddata.manifest.v1        — the signed-payload envelope
+ */
+function isCertificateSchema(schema: string | undefined): boolean {
+  if (typeof schema !== "string") return false;
+  return (
+    schema.startsWith("cert.") ||
+    schema.startsWith("certifieddata.cert.") ||
+    schema.startsWith("certifieddata.manifest.")
+  );
 }

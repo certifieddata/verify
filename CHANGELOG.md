@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-09-07
 
 ### Added
 
@@ -14,7 +14,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - RFC 8785 JCS canonicalizer (`canonicalize.ts`).
 - Ed25519 signature verification using `node:crypto` only — zero third-party crypto dependencies.
 - `cert.v1` schema support.
+- `cert.v2` schema support (`cert-v2.ts`) — the schema production has issued
+  since 2026-02. v2 differs from v1 in three ways that matter: the signature is
+  detached rather than a field inside the signed document (so the whole payload
+  is canonicalized, with nothing stripped), the signer is named at
+  `payload.issuer.signing_key_id`, and the artifact digest is bare hex at
+  `payload.artifact_hash`. Signed bytes are Ed25519 over JCS of the payload,
+  confirmed empirically against the live production certificate committed as
+  `fixtures/valid-cert-v2.json`.
+- Payment receipt verification against the published Agent Commerce key.
 - `--dataset`, `--json`, `--offline`, `--keys`, `--no-cache` flags.
-- Trusted-keys document fetched from `https://certifieddata.io/.well-known/certifieddata-keys.json` with TTL cache at `~/.certifieddata/keys.json`.
+- Trusted-keys document fetched from the issuer's `.well-known` signing-keys
+  document, with TTL cache at `~/.certifieddata/keys.json`.
 - Six exit codes documented in the README and `--help`.
-- 34 tests across canonicalize, verify, and CLI suites.
+- 93 tests across canonicalize, verify, cert-v2, receipt, exit-code and CLI suites.
+
+### Fixed
+
+- **The certificate path could not verify any production certificate.** Two
+  independent causes, both addressed here:
+  - Every issued certificate is `cert.v2`; the verifier implemented only
+    `cert.v1` and rejected v2 as `MALFORMED` on a missing `certification_id`
+    (v2 names it `certificate_id`).
+  - The pinned keys URL was `/.well-known/certifieddata-keys.json`, which
+    returns 404 and was never deployed, so verification exited `NETWORK` before
+    reaching the signature. It now points at
+    `/.well-known/signing-keys.json` — the document the issuer actually
+    publishes and that every certificate's own `public_key_url` references.
+- Resolving a bare certificate id now fetches `…/signed-payload` rather than
+  the plain `…/api/certificates/<id>` projection. The projection carries the
+  real signature bytes but the signature covers the v2 payload, not the
+  projection, so verifying it reported `INVALID` on untampered certificates.
+- The keys-document parser accepts both published dialects
+  (`public_key` / `public_key_pem`, per-key `revoked_at` / top-level
+  `revoked[]` and `retired[]`, CRLF in PEM bodies) and compares `algorithm`
+  case-insensitively. Previously an `algorithm` of `"Ed25519"` — the spelling
+  the issuer publishes — yielded `UNKNOWN_KEY`, a security verdict, for a
+  difference of one capital letter. A revocation entry that cannot be parsed is
+  now an error rather than being skipped, so an unreadable revocation record can
+  never be mistaken for a good key.
+- Human output no longer prints `0 rows × 0 cols` for `cert.v2`, which has no
+  column count.

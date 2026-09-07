@@ -2,6 +2,7 @@
 import { fetchCert } from "./fetch-cert.js";
 import { loadKeys } from "./keys.js";
 import { verifyCertificate } from "./verify.js";
+import { isCertV2, verifyCertificateV2 } from "./cert-v2.js";
 import { fetchReceipt, loadReceiptKey, verifyReceiptEnvelope } from "./receipt.js";
 import { resolveArtifactKind } from "./resolve.js";
 const HELP = `certifieddata-verify <id|path|url|-> [options]
@@ -126,12 +127,17 @@ export async function main(argv) {
             case "MALFORMED": return EXIT.MALFORMED;
         }
     }
-    // ── Certificate path (unchanged behavior) ──────────────────────────────
+    // ── Certificate path ───────────────────────────────────────────────────
+    // cert.v1 and cert.v2 sign different bytes and name the signer in different
+    // places, so the schema decides which verifier runs. Both return the same
+    // VerifyResult, so output and exit codes are identical either way.
     let result;
     try {
-        const cert = await fetchCert(target, { offline: args.offline });
+        const doc = await fetchCert(target, { offline: args.offline });
         const keys = await loadKeys({ keysFile: args.keys, offline: args.offline, noCache: args.noCache });
-        result = await verifyCertificate(cert, keys, args.dataset);
+        result = isCertV2(doc)
+            ? await verifyCertificateV2(doc, keys, args.dataset)
+            : await verifyCertificate(doc, keys, args.dataset);
     }
     catch (err) {
         const reason = err.message;
@@ -220,9 +226,15 @@ function printHuman(r) {
             process.stdout.write(`${c.green("✓ VALID")}  certification_id ${id}\n`);
             const label = r.key_label ? `${r.key_id}  (${r.issuer}, ${r.key_label})` : `${r.key_id}  (${r.issuer})`;
             process.stdout.write(`  ${c.dim("signed by")}  ${label}\n`);
-            const rows = (r.rows ?? 0).toLocaleString("en-US");
-            const cols = (r.columns ?? 0).toLocaleString("en-US");
-            process.stdout.write(`  ${c.dim("algorithm")}  ${r.algorithm}  ·  ${rows} rows × ${cols} cols  ·  signed ${r.signed_at}\n`);
+            // cert.v2 carries no column count, so only print a shape when we have
+            // one. Printing "0 rows × 0 cols" for a v2 certificate states something
+            // false about the artifact.
+            const shape = r.rows !== undefined && r.columns !== undefined
+                ? `${r.rows.toLocaleString("en-US")} rows × ${r.columns.toLocaleString("en-US")} cols  ·  `
+                : r.rows !== undefined
+                    ? `${r.rows.toLocaleString("en-US")} records  ·  `
+                    : "";
+            process.stdout.write(`  ${c.dim("algorithm")}  ${r.algorithm}  ·  ${shape}signed ${r.signed_at}\n`);
             if (r.checks.dataset_match === "pass") {
                 process.stdout.write(`  ${c.dim("dataset")}    ${r.dataset_hash_actual} ${c.green("matches")}\n`);
             }
