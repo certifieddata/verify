@@ -1,0 +1,60 @@
+{
+  "schema_version": "certifieddata.manifest.v1",
+  "payload": {
+    "hashes": {
+      "datasets": {
+        "2026-09-07.56f57741adc7.public_audit_export.v1.json": {
+          "sha256": "cc437f2cc9e2e58fc22a9c88bd33c001305006aadcebf9af2eb7d9bfb0b34e0e",
+          "size_bytes": 780
+        }
+      },
+      "certificate_payload_sha256": "d611a0115feed01a3bf866258cdac97aaf5c6c310cfea2525e3aa39d5216f08e"
+    },
+    "issuer": {
+      "name": "Certified Data LLC",
+      "environment": "production",
+      "signature_alg": "Ed25519",
+      "signing_key_id": "ed25519-prod-2025-02"
+    },
+    "subject": {
+      "user_id": "536f5e7e-7c9d-4f25-ba3a-319230b0c6cf",
+      "dataset_name": "2026-09-07.56f57741adc7.public_audit_export.v1.json"
+    },
+    "manifest": {
+      "engine": "notary-s2s",
+      "outputs": {
+        "dataset_ephemeral": true
+      },
+      "manifest_id": "55c1a91a-25b7-415b-9582-cad5e25a6f68",
+      "record_count": 1,
+      "manifest_mode": "notary"
+    },
+    "artifacts": {
+      "pdf": {
+        "path": "certs/d6da041f-a70c-4945-93b7-dff1e42a00d0.pdf",
+        "bucket": "certificates"
+      },
+      "verification_url": "https://certifieddata.io/verify/d6da041f-a70c-4945-93b7-dff1e42a00d0"
+    },
+    "issued_at": "2026-09-07T00:31:13.652Z",
+    "provenance": {
+      "audit_vault_entry_ids": [],
+      "audit_vault_retention_years": 7
+    },
+    "hash_method": "SHA-256",
+    "artifact_hash": "cc437f2cc9e2e58fc22a9c88bd33c001305006aadcebf9af2eb7d9bfb0b34e0e",
+    "certificate_id": "d6da041f-a70c-4945-93b7-dff1e42a00d0",
+    "schema_version": "cert.v2",
+    "inner_artifacts": {},
+    "certificate_type": "MANIFEST",
+    "artifact_filename": "2026-09-07.56f57741adc7.public_audit_export.v1.json",
+    "artifact_mime_type": "application/json",
+    "certification_scope": "This certificate covers the delivered ZIP artifact and the listed inner files.",
+    "hashing_methodology_version": "artifact-hash.v1"
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "ed25519-prod-2025-02",
+    "value": "z6wuaC86LVkXnYLXtCpS6Xui3I1/piGyFyRdt66iLfuuIlip/2atKf0M7qQbJIfEAjZpTcQW6bdPhbL1g1/VBA=="
+  }
+}

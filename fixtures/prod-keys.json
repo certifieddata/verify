@@ -1,0 +1,13 @@
+{
+  "issuer": "CertifiedData.io",
+  "keys": [
+    {
+      "key_id": "ed25519-prod-2025-02",
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGvAJNlssfFuZp4TNNr0eZhYNHoQSgng92z8lLjKcwLM=\n-----END PUBLIC KEY-----\n",
+      "algorithm": "ed25519",
+      "created_at": "2026-02-22T18:26:46.293Z",
+      "revoked_at": null,
+      "label": "production signing key"
+    }
+  ]
+}

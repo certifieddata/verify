@@ -19,7 +19,7 @@ export async function resolveArtifactKind(target, opts = {}) {
     // Endpoint-URL hints.
     if (/\/api\/payments\/verify\//.test(target))
         return { kind: "receipt", via: "url-path" };
-    if (/\/api\/v1\/certificates\//.test(target))
+    if (/\/api\/(v1\/)?certificates?\//.test(target))
         return { kind: "certificate", via: "url-path" };
     // Local file / stdin: sniff the JSON shape.
     const looksLocal = target === "-" ||
@@ -30,11 +30,20 @@ export async function resolveArtifactKind(target, opts = {}) {
     if (looksLocal && target !== "-") {
         try {
             const parsed = JSON.parse(await readFile(target, "utf8"));
+            // A cert.v2 envelope names its schema on the payload, not at the top
+            // level — production serves the outer document as
+            // "certifieddata.manifest.v1" — so sniffing only the top level would
+            // miss every real certificate.
             const schema = parsed.schema_version ??
+                parsed.payload?.schema_version ??
                 parsed.receipt?.schema_version;
+            const payloadSchema = parsed.payload
+                ?.schema_version;
             if (schema === "payment_receipt.v1")
                 return { kind: "receipt", via: "local-schema" };
-            if (typeof schema === "string" && schema.startsWith("cert.")) {
+            if (isCertificateSchema(schema) ||
+                isCertificateSchema(payloadSchema) ||
+                schema === "certifieddata.manifest.v1") {
                 return { kind: "certificate", via: "local-schema" };
             }
             // Envelope shape without schema — a verify-endpoint dump.
@@ -83,5 +92,18 @@ export async function resolveArtifactKind(target, opts = {}) {
     if (rcpt === "exists")
         return { kind: "receipt", via: "probe" };
     return { kind: "not_found", via: "probe" };
+}
+/**
+ * Certificate schema names seen in the wild:
+ *   cert.v1, cert.v2                 — the payload's own schema_version
+ *   certifieddata.cert.v1            — the public display projection
+ *   certifieddata.manifest.v1        — the signed-payload envelope
+ */
+function isCertificateSchema(schema) {
+    if (typeof schema !== "string")
+        return false;
+    return (schema.startsWith("cert.") ||
+        schema.startsWith("certifieddata.cert.") ||
+        schema.startsWith("certifieddata.manifest."));
 }
 //# sourceMappingURL=resolve.js.map

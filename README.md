@@ -17,9 +17,57 @@ certifieddata-verify ce_01HXYZ123abc... --dataset path/to/data.csv
 
 ## What this verifies
 
-- **The signature.** `cert.signature` is an Ed25519 signature over the RFC 8785 JCS canonicalization of the rest of the certificate. We re-canonicalize, re-verify, and refuse to claim a cert is valid unless the signature checks out.
-- **The signer.** `cert.key_id` must appear in the issuer's published [`.well-known` keys document](https://certifieddata.io/.well-known/certifieddata-keys.json) and must not be revoked.
-- **The dataset (optional).** When `--dataset <path>` is supplied, we stream-hash the file and refuse to claim a match unless its SHA-256 is bit-identical to `cert.dataset_hash`.
+- **The signature.** An Ed25519 signature over the RFC 8785 JCS canonicalization of the certificate payload. We re-canonicalize, re-verify, and refuse to claim a cert is valid unless the signature checks out.
+- **The signer.** The certificate's signing key must appear in the issuer's published [signing-keys document](https://certifieddata.io/.well-known/signing-keys.json) and must not be revoked. That URL is pinned in this package; we deliberately do **not** follow the `public_key_url` inside a certificate, because a document that has not been verified yet must not choose the keys it is verified against.
+- **The dataset (optional).** When `--dataset <path>` is supplied, we stream-hash the file and refuse to claim a match unless its SHA-256 is bit-identical to the digest in the certificate.
+
+## Certificate schemas
+
+Both issued schemas are supported, and the CLI picks the right one from the
+document itself — you never pass a flag for it.
+
+| | `cert.v1` | `cert.v2` (current) |
+|---|---|---|
+| Signature location | `cert.signature`, inside the document | detached, beside the payload |
+| Canonicalized bytes | certificate **minus** `signature` | the **whole** payload |
+| Signer named at | `cert.key_id` | `payload.issuer.signing_key_id` |
+| Artifact digest | `cert.dataset_hash` (`sha256:…`) | `payload.artifact_hash` (bare hex) |
+
+A `cert.v2` document is an envelope. Note that the outer `schema_version` names
+the envelope, not the certificate, and that `signature` is an **object** rather
+than a bare string:
+
+```json
+{
+  "schema_version": "certifieddata.manifest.v1",
+  "payload":   { "schema_version": "cert.v2", "certificate_id": "d6da041f-…", "…": "…" },
+  "signature": { "alg": "Ed25519", "key_id": "ed25519-prod-2025-02", "value": "base64…" }
+}
+```
+
+Because the v2 signature is detached, the payload is canonicalized exactly as
+issued — nothing is removed before verification. A bare base64 `signature`
+string is also accepted.
+
+### Which endpoint to verify against
+
+Resolving a bare certificate id fetches
+`https://api.certifieddata.io/api/certificates/<id>/signed-payload`.
+
+Use that one. `…/api/certificates/<id>` (without the suffix) returns a
+`certifieddata.cert.v1`-shaped **display projection** of the same certificate.
+It carries the real signature bytes, but the signature covers the v2 payload
+rather than the projection, so verifying that document reports `INVALID` —
+which reads as tampering when nothing has been tampered with.
+
+> **Note on `hashes.certificate_payload_sha256`.** Some v2 payloads carry a
+> self-referential digest field. It is *not* part of the trust decision and this
+> verifier ignores it: the Ed25519 signature over the canonicalized payload is
+> what establishes integrity. The published value is not reproducible from the
+> stored document under JCS, plain `JSON.stringify`, sorted-key stringify, or
+> pretty-printed JSON — most likely it was computed over insertion-ordered JSON,
+> which Postgres `jsonb` does not preserve. Do not treat a mismatch in that
+> field as a verification failure.
 
 ## Why audit-friendly
 
@@ -81,8 +129,8 @@ The non-zero exit codes fail the job automatically — a CI run will not pass if
 
 ```bash
 # Pre-stage a copy of the issuer's keys document, then verify with no network.
-curl -O https://certifieddata.io/.well-known/certifieddata-keys.json
-certifieddata-verify ./received-cert.json --keys ./certifieddata-keys.json --offline
+curl -O https://certifieddata.io/.well-known/signing-keys.json
+certifieddata-verify ./received-cert.json --keys ./signing-keys.json --offline
 ```
 
 `--offline` refuses to make any network call. Combined with `--keys`, it produces a fully reproducible audit you can replay months later.
@@ -108,13 +156,18 @@ CertifiedData's opinion about CertifiedData's own signature.
 
 ## How CertifiedData certificates work
 
-CertifiedData.io issues `cert.v1` documents that bind together:
+CertifiedData.io currently issues `cert.v2` documents (`cert.v1` is still
+supported here and still verifies). Both bind together:
 
-1. A **dataset hash** — `sha256(file_bytes)` for binary data (CSV, Parquet) or `sha256(JCS(payload))` for structured data.
-2. **Provenance** — the algorithm used, row/column counts, the issuance timestamp, and an opaque `certification_id`.
-3. A **signer** — `key_id`, with the public key fetched from the issuer's `.well-known` endpoint.
+1. An **artifact hash** — `sha256(file_bytes)` for binary data (CSV, Parquet, ZIP) or `sha256(JCS(payload))` for structured data.
+2. **Provenance** — the issuing engine, a record count, the issuance timestamp, and an opaque certificate id.
+3. A **signer** — a `signing_key_id`, with the public key fetched from the issuer's pinned `.well-known` signing-keys document.
 
-The signature is computed over the RFC 8785 JCS canonicalization of the certificate **with the `signature` field omitted** — this is the only sane way to sign a JSON document and have it round-trip through arbitrary JSON parsers.
+In `cert.v1` the signature is computed over the JCS canonicalization of the
+certificate **with the `signature` field omitted**. In `cert.v2` the signature is
+detached and travels beside the payload, so the **whole** payload is
+canonicalized with nothing stripped. Either way, nothing signs the field that
+holds its own signature.
 
 We use Ed25519 because it is fast, deterministic, has small keys (32 bytes) and small signatures (64 bytes), and is built into Node's `crypto` module. We never sign the field that contains the signature, and we never claim a verdict beyond what the cert actually says — for example, we will not call a CTGAN cert "differentially private" unless the metadata explicitly carries a non-null `epsilon` and the algorithm is `DP-CTGAN`.
 
