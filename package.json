@@ -1,6 +1,6 @@
 {
   "name": "@certifieddata/verify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.",
   "type": "module",
   "bin": {

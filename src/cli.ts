@@ -261,10 +261,42 @@ function printReceiptHuman(r: ReceiptVerifyResult): void {
       process.stdout.write(`  ${c.dim("signature")}    ${r.checks.signature}\n`);
       process.stdout.write(`  ${c.dim("payload hash")} ${r.checks.payload_hash}\n`);
       process.stdout.write(`  ${c.dim("public key")}   /.well-known/certifieddata-public-key.pem\n`);
-      if (r.settlement_state) {
-        process.stdout.write(`  ${c.dim("settlement")}   ${r.settlement_state}\n`);
+
+      // What the signature covers. Printed only on VALID, and only from the
+      // payload that just passed both the signature and hash checks — so
+      // everything below is inside the signed bytes, not alongside them.
+      const b = r.bindings ?? {};
+      const money =
+        r.amount_cents !== null && r.amount_cents !== undefined
+          ? `${(r.amount_cents / 100).toFixed(2)} ${(r.currency ?? "").toUpperCase()}`.trim()
+          : null;
+
+      const rows: Array<[string, string | null | undefined]> = [
+        ["amount", money],
+        ["settlement", r.settlement_state],
+        ["settled at", b.settled_at],
+        ["rail", b.rail],
+        ["purpose", b.purpose],
+        ["agent", b.agent_id],
+        ["policy", b.policy_id],
+        ["policy hash", b.policy_hash],
+        ["authorization", b.authorization_id],
+        ["decision", b.decision_record_id],
+        ["artifact hash", b.artifact_hash],
+        ["certificate", b.certificate_id],
+        ["transaction", b.transaction_id],
+        ["payment ref", b.external_reference],
+      ];
+      const shown = rows.filter(([, v]) => v !== null && v !== undefined && v !== "");
+      if (shown.length > 0) {
+        process.stdout.write(`\n  ${c.dim("── bound by this signature ──")}\n`);
+        const width = Math.max(...shown.map(([k]) => k.length));
+        for (const [k, v] of shown) {
+          process.stdout.write(`  ${c.dim(k.padEnd(width))}  ${v}\n`);
+        }
       }
-      process.stdout.write(`  ${c.dim("The verdict above was computed locally — not taken from the server.")}\n`);
+
+      process.stdout.write(`\n  ${c.dim("The verdict above was computed locally — not taken from the server.")}\n`);
       break;
     }
     case "INVALID":

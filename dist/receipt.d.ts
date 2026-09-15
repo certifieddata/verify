@@ -24,6 +24,31 @@ export interface ReceiptVerifyResult {
     settlement_state?: string | null;
     amount_cents?: number | null;
     currency?: string | null;
+    /**
+     * What the signature actually covers.
+     *
+     * A signature is only as interesting as the things it binds, and a receipt
+     * that says nothing but "VALID" invites the reader to take the rest on
+     * trust — which is the opposite of the point. These fields are read out of
+     * the *verified* payload, so they are displayed only after the signature and
+     * payload hash have both passed.
+     */
+    bindings?: {
+        policy_id?: string | null;
+        policy_hash?: string | null;
+        policy_version?: string | null;
+        authorization_id?: string | null;
+        decision_record_id?: string | null;
+        artifact_hash?: string | null;
+        certificate_id?: string | null;
+        transaction_id?: string | null;
+        external_reference?: string | null;
+        purpose?: string | null;
+        agent_id?: string | null;
+        rail?: string | null;
+        status?: string | null;
+        settled_at?: string | null;
+    };
 }
 interface ReceiptEnvelope {
     payload: Record<string, unknown>;

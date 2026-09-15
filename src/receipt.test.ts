@@ -116,3 +116,67 @@ test("a non-ed25519 published key is UNKNOWN_KEY, never a pass", () => {
   assert.equal(r.verdict, "UNKNOWN_KEY");
   assert.equal(r.checks.key_trust, "fail");
 });
+
+// ── What the signature binds ─────────────────────────────────────────────────
+//
+// A receipt that reports nothing but "VALID" asks the reader to take the
+// substance on trust, which is the opposite of the point. These assert that the
+// identifiers and digests inside the signed payload are surfaced to the caller.
+
+test("a verified receipt exposes the bindings the signature covers", () => {
+  const r = verifyReceiptEnvelope(signedEnvelope(), publicKeyPem);
+  assert.equal(r.verdict, "VALID");
+  const b = r.bindings!;
+  assert.equal(b.policy_id, BASE_PAYLOAD.policy_id);
+  assert.equal(b.policy_hash, BASE_PAYLOAD.policy_hash);
+  assert.equal(b.artifact_hash, BASE_PAYLOAD.artifact_hash);
+  assert.equal(b.transaction_id, BASE_PAYLOAD.transaction_id);
+  assert.equal(b.agent_id, BASE_PAYLOAD.agent_id);
+  assert.equal(b.rail, "stripe");
+  assert.equal(b.status, "succeeded");
+});
+
+test("amount is read whether production sends a number or a string", () => {
+  // Production emits `amount` as a STRING ("99"). The previous
+  // `typeof p.amount === "number"` test silently dropped it, so every real
+  // receipt verified with no amount displayed at all.
+  const asNumber = verifyReceiptEnvelope(signedEnvelope(), publicKeyPem);
+  assert.equal(asNumber.amount_cents, 2900);
+
+  const asText = verifyReceiptEnvelope(
+    signedEnvelope({ ...BASE_PAYLOAD, amount: "99" }),
+    publicKeyPem,
+  );
+  assert.equal(asText.verdict, "VALID");
+  assert.equal(asText.amount_cents, 99);
+});
+
+test("a non-numeric amount is dropped rather than coerced to something wrong", () => {
+  const r = verifyReceiptEnvelope(
+    signedEnvelope({ ...BASE_PAYLOAD, amount: "not-a-number" }),
+    publicKeyPem,
+  );
+  assert.equal(r.amount_cents, null);
+});
+
+test("absent bindings are null rather than invented", () => {
+  const sparse = { ...BASE_PAYLOAD } as Record<string, unknown>;
+  delete sparse.policy_hash;
+  delete sparse.artifact_hash;
+  const r = verifyReceiptEnvelope(signedEnvelope(sparse), publicKeyPem);
+  assert.equal(r.verdict, "VALID");
+  assert.equal(r.bindings!.policy_hash, null);
+  assert.equal(r.bindings!.artifact_hash, null);
+  // The ones that are present still come through.
+  assert.equal(r.bindings!.policy_id, BASE_PAYLOAD.policy_id);
+});
+
+test("bindings come from the payload that was actually verified", () => {
+  // Tamper after signing: the verdict must fail, so nothing is reported as
+  // bound by a signature that does not cover it.
+  const env = signedEnvelope();
+  (env.payload as Record<string, unknown>).policy_hash = "sha256:" + "0".repeat(64);
+  const r = verifyReceiptEnvelope(env, publicKeyPem);
+  assert.equal(r.verdict, "INVALID");
+  assert.equal(r.checks.signature, "fail");
+});

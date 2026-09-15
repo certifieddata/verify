@@ -44,6 +44,49 @@ export interface ReceiptVerifyResult {
   settlement_state?: string | null;
   amount_cents?: number | null;
   currency?: string | null;
+  /**
+   * What the signature actually covers.
+   *
+   * A signature is only as interesting as the things it binds, and a receipt
+   * that says nothing but "VALID" invites the reader to take the rest on
+   * trust — which is the opposite of the point. These fields are read out of
+   * the *verified* payload, so they are displayed only after the signature and
+   * payload hash have both passed.
+   */
+  bindings?: {
+    policy_id?: string | null;
+    policy_hash?: string | null;
+    policy_version?: string | null;
+    authorization_id?: string | null;
+    decision_record_id?: string | null;
+    artifact_hash?: string | null;
+    certificate_id?: string | null;
+    transaction_id?: string | null;
+    external_reference?: string | null;
+    purpose?: string | null;
+    agent_id?: string | null;
+    rail?: string | null;
+    status?: string | null;
+    settled_at?: string | null;
+  };
+}
+
+/** Payload values arrive as strings or numbers depending on the issuing path. */
+function asString(v: unknown): string | null {
+  if (typeof v === "string" && v.length > 0) return v;
+  if (typeof v === "number") return String(v);
+  return null;
+}
+
+/**
+ * `amount` is minor units. Production emits it as a STRING ("99"), so a
+ * `typeof === "number"` test silently dropped it and the CLI printed no amount
+ * at all on real receipts.
+ */
+function asMinorUnits(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && /^\d+$/.test(v)) return Number(v);
+  return null;
 }
 
 interface ReceiptEnvelope {
@@ -154,8 +197,24 @@ export function verifyReceiptEnvelope(
     reason: "",
     server_reported: env.serverReported,
     settlement_state: typeof p.settlement_state === "string" ? p.settlement_state : null,
-    amount_cents: typeof p.amount === "number" ? p.amount : null,
+    amount_cents: asMinorUnits(p.amount),
     currency: typeof p.currency === "string" ? p.currency : null,
+    bindings: {
+      policy_id:          asString(p.policy_id),
+      policy_hash:        asString(p.policy_hash),
+      policy_version:     asString(p.policy_version),
+      authorization_id:   asString(p.authorization_id),
+      decision_record_id: asString(p.decision_record_id),
+      artifact_hash:      asString(p.artifact_hash),
+      certificate_id:     asString(p.certificate_id),
+      transaction_id:     asString(p.transaction_id),
+      external_reference: asString(p.external_reference),
+      purpose:            asString(p.purpose),
+      agent_id:           asString(p.agent_id),
+      rail:               asString(p.rail),
+      status:             asString(p.status),
+      settled_at:         asString(p.settled_at),
+    },
   };
 
   if (p.schema_version !== "payment_receipt.v1") {
