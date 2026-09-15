@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-09-15
+
+### Added
+
+- Verified receipts now report **what the signature binds**, not just that it is
+  valid. A receipt that says nothing but `VALID` asks the reader to take the
+  substance on trust, which is the opposite of the point of an independent
+  verifier. The output now lists the amount, settlement state and time, rail,
+  purpose, agent, policy id and policy hash, authorization id, decision record
+  id, artifact hash, certificate id, transaction id and payment reference —
+  each read from the payload that just passed both the signature and
+  payload-hash checks, so nothing is shown as covered by a signature that does
+  not cover it.
+- `bindings` on `ReceiptVerifyResult`, so library consumers get the same fields
+  programmatically rather than re-parsing the payload.
+
+### Fixed
+
+- **The amount was silently dropped on every real receipt.** Production emits
+  `amount` as a string (`"99"`); the code tested `typeof p.amount === "number"`
+  and so reported no amount at all. Both forms are now accepted, and a
+  non-numeric value is dropped rather than coerced into something wrong.
+
 ## [0.1.0] - 2026-09-07
 
 ### Added

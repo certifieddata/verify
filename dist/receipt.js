@@ -19,6 +19,26 @@ import { readFile } from "node:fs/promises";
 import { canonicalizeToBytes } from "./canonicalize.js";
 export const DEFAULT_RECEIPT_API = "https://certifieddata.io/api/payments/verify";
 export const DEFAULT_RECEIPT_KEY_URL = "https://certifieddata.io/.well-known/certifieddata-public-key.pem";
+/** Payload values arrive as strings or numbers depending on the issuing path. */
+function asString(v) {
+    if (typeof v === "string" && v.length > 0)
+        return v;
+    if (typeof v === "number")
+        return String(v);
+    return null;
+}
+/**
+ * `amount` is minor units. Production emits it as a STRING ("99"), so a
+ * `typeof === "number"` test silently dropped it and the CLI printed no amount
+ * at all on real receipts.
+ */
+function asMinorUnits(v) {
+    if (typeof v === "number" && Number.isFinite(v))
+        return v;
+    if (typeof v === "string" && /^\d+$/.test(v))
+        return Number(v);
+    return null;
+}
 /** Accepts a receipt id, a /api/payments/verify URL, a local .json path, or "-". */
 export async function fetchReceipt(idOrPathOrUrl, opts = {}) {
     if (idOrPathOrUrl === "-")
@@ -97,8 +117,24 @@ export function verifyReceiptEnvelope(env, publicKeyPem) {
         reason: "",
         server_reported: env.serverReported,
         settlement_state: typeof p.settlement_state === "string" ? p.settlement_state : null,
-        amount_cents: typeof p.amount === "number" ? p.amount : null,
+        amount_cents: asMinorUnits(p.amount),
         currency: typeof p.currency === "string" ? p.currency : null,
+        bindings: {
+            policy_id: asString(p.policy_id),
+            policy_hash: asString(p.policy_hash),
+            policy_version: asString(p.policy_version),
+            authorization_id: asString(p.authorization_id),
+            decision_record_id: asString(p.decision_record_id),
+            artifact_hash: asString(p.artifact_hash),
+            certificate_id: asString(p.certificate_id),
+            transaction_id: asString(p.transaction_id),
+            external_reference: asString(p.external_reference),
+            purpose: asString(p.purpose),
+            agent_id: asString(p.agent_id),
+            rail: asString(p.rail),
+            status: asString(p.status),
+            settled_at: asString(p.settled_at),
+        },
     };
     if (p.schema_version !== "payment_receipt.v1") {
         result.reason = `unsupported schema_version: ${String(p.schema_version)}`;
