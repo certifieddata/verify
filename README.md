@@ -7,13 +7,34 @@
 
 > Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.
 
-## Install + verify in three lines
+## Verify something real, right now
+
+No install, no account, nothing of ours on your machine:
+
+```bash
+npx --package @certifieddata/verify cd-verify d6da041f-a70c-4945-93b7-dff1e42a00d0 --type certificate
+# → ✓ VALID  certification_id d6da041f-a70c-4945-93b7-dff1e42a00d0
+#     signed by  ed25519-prod-2025-02  (Certified Data LLC)
+
+npx --package @certifieddata/verify cd-verify 2492a060-8fbc-40ae-beab-7258aefb0608 --type receipt
+# → ✓ VALID  receipt 2492a060-8fbc-40ae-beab-7258aefb0608
+#     settlement   succeeded_live
+```
+
+Both ids are real production artifacts, and both verdicts are computed locally
+against the issuer's published key — not read back from our API. If our servers
+disagreed with the maths, this tool would side with the maths.
+
+## Install
 
 ```bash
 npm install -g @certifieddata/verify
-certifieddata-verify ce_01HXYZ123abc... --dataset path/to/data.csv
-# → ✓ VALID  certification_id ce_01HXYZ123abc...
+cd-verify <certificate-id> --dataset path/to/data.csv
 ```
+
+> **On Windows use `cd-verify`, not `verify`.** `verify` is a built-in cmd.exe
+> command and shadows the bin, which fails silently with exit 1. The
+> `cd-verify` and `certifieddata-verify` aliases work everywhere.
 
 ## What this verifies
 
@@ -141,8 +162,11 @@ Receipts are a different artifact from certificates, with a different trust root
 (`/.well-known/certifieddata-public-key.pem` rather than the keys document).
 
 ```bash
-npx --package github:certifieddata/verify cd-verify <receipt-uuid> --type receipt
+npx --package @certifieddata/verify cd-verify 2492a060-8fbc-40ae-beab-7258aefb0608 --type receipt
 ```
+
+That id is a real production receipt for a live 99-cent settlement, so the
+command above works as written rather than needing a placeholder substituted.
 
 The canonicalization, the exact bytes that are signed, and the test vectors are
 specified normatively in **[RECEIPT-VERIFICATION.md](./RECEIPT-VERIFICATION.md)**.
