@@ -7,7 +7,13 @@
 
 > Verify CertifiedData.io certificates from the command line. Audit-friendly, zero crypto dependencies.
 
-## Verify something real, right now
+## Verify real production evidence yourself
+
+<!-- Absolute raw URL rather than a relative path: the GIF lives under docs/
+     and is deliberately NOT in the published tarball (package.json `files` is
+     an allowlist of dist/, README.md and LICENSE), so a relative link would
+     break on npm. This URL renders on both GitHub and npmjs.com. -->
+![Verifying a real CertifiedData payment receipt with the public npm verifier: the command runs, prints VALID, and lists the policy hash, authorization, decision record, artifact hash, certificate and Stripe settlement bound by the signature](https://raw.githubusercontent.com/certifieddata/verify/main/docs/media/verify-demo.gif)
 
 No install, no account, nothing of ours on your machine:
 
@@ -24,6 +30,19 @@ npx --package @certifieddata/verify cd-verify 2492a060-8fbc-40ae-beab-7258aefb06
 Both ids are real production artifacts, and both verdicts are computed locally
 against the issuer's published key — not read back from our API. If our servers
 disagreed with the maths, this tool would side with the maths.
+
+The receipt above carries signed bindings for the policy snapshot that
+authorized the spend, the authorization and decision records, the live Stripe
+settlement, the artifact hash and the certificate issued for it. The recording
+uses the short `npx @certifieddata/verify …` form; the longer form above is the
+one that also works on Windows, where `verify` is a cmd.exe built-in.
+
+What that signature establishes is narrow and worth stating exactly: that
+CertifiedData issued the record, that its bytes have not changed since, and
+which policy, authorization, decision, artifact and settlement were bound
+together at the moment of signing. It does **not** establish that the policy was
+a good one, that any control was effective, or that anyone is compliant with any
+regulation.
 
 ## Install
 
