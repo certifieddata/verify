@@ -18,10 +18,10 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
-      # Node 22 bundles npm 10.x. Trusted publishing (OIDC provenance with no
-      # long-lived token) requires npm >= 11.5.1, so upgrade the CLI before
-      # publishing. Without this, `npm publish --provenance` fails on auth.
-      - name: Upgrade npm for trusted publishing
+      # Node 22 bundles npm 10.x. Keep the CLI current so the registry does not
+      # reject a stale client, and so trusted publishing is available once it
+      # can be configured (see the publish step).
+      - name: Upgrade npm
         run: npm install -g npm@latest
 
       - run: npm ci
@@ -40,9 +40,16 @@ jobs:
             exit 1
           fi
 
-      - run: npm publish --provenance --access public
+      # No --provenance on the first publish. Trusted publishing (OIDC) has to
+      # be configured against a package that already exists on npmjs.com, so it
+      # is unavailable until 0.1.0 is up — and a classic token combined with
+      # --provenance is precisely the combination npm is now restricting
+      # (https://gh.io/npm-gat-bypass2fa-deprecation). Add --provenance back in
+      # a follow-up once trusted publishing is enabled for the package, and
+      # drop the token at the same time.
+      - run: npm publish --access public
         env:
-          # Belt and braces: if the package is not yet configured for trusted
-          # publishing on npmjs.com, this token is what authenticates. Remove
-          # once trusted publishing is configured.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # The repo secret is NPM_ACCESS_TOKEN. This previously read
+          # NPM_TOKEN, which is not set — so a release-triggered publish would
+          # have authenticated as nobody and failed.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
